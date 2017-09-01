@@ -1,6 +1,10 @@
 import numpy as np
-from random import shuffle, randrange
+from random import shuffle, randrange, seed
 from enum import Enum
+import logging
+logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger('maze_generator')
 
 class Direction(Enum):
     UP  = 0
@@ -25,6 +29,10 @@ class MazeGenerator():
         self.num_states = heigth * width
         self.num_actions   = len(Direction)
 
+        # Rewards for valid actions
+        self.normal_reward = 0
+        self.goal_reward   = 5
+
     def initialize_reward_matrix(self):
         R = np.full((self.num_states, self.num_actions), -1)
         return R
@@ -35,15 +43,19 @@ class MazeGenerator():
     
     # Will need to convert from 2D coordinate to state number
     def initialize_possible_actions_per_state(self):
-        state_to_actions = [[]] * self.num_states
+        state_to_actions = [[] for _ in range(0, self.num_states)]
         return state_to_actions 
 
-    # Carve maze.
+    # Creates a maze contained in a grid of space self.heigth ad self.width.
+    # In the process of creation it also creates the following matrices:
+    #   - R: Reward matrix. Reward for moving to invalid position is -1.
+    #                       Reward for moving to valid position is 
+    #                       self.normal_reward and self.goal_reward for moving into goal
+    #   - P: Transition probability matrix.
+    #   - STA: valid actions for each state.
     def DFT(self):
         within_bounds = lambda y,x: (x >= 0 and x < self.width) and (y >= 0 and y < self.heigth)
         is_valid_direction = lambda y,x,_: within_bounds(y,x) and not visited[y][x]
-        
-
 
         # Initialize all variables
         visited = np.full((self.heigth, self.width), False)
@@ -59,43 +71,58 @@ class MazeGenerator():
 
         # Start depth first traversal
         stack.append((start_y, start_x, None))
-        print('Start state: {} {}'.format(start_y,start_x))
-        print('Goal  state: {} {}'.format(*goal_state))
+        
+        logger.debug('Start state: {} {}'.format(start_y,start_x))
+        logger.debug('Goal  state: {} {}'.format(*goal_state))
         while len(stack) > 0:
-            print()
-            y, x, dirc = stack.pop()
-            if visited[y][x]: continue
-
-            print("We have gone {}".format(dirc))
+            # New tile to explore. dirc represents the previous direction taken to come to this tile.
+            y, x, dirc = stack.pop() 
             visited[y][x] = True
-            print(visited)
+
+            logger.debug("We have gone {}".format(dirc))
+            logger.debug(visited)
+
+            # All possible directions that can be taken.
             directions = [(y+1,x,Direction.DOWN),(y,x+1,Direction.RIGHT),
                           (y-1,x,Direction.UP),(y,x-1,Direction.LEFT)]
-
+            # Filter directions to the ones we can actually take
             valid_directions = [(y,x,d) for y,x,d in directions if is_valid_direction(y,x,d)]
 
             # Shuffling possible directions ensures random walk
             shuffle(valid_directions)
+            # add directions to be explored later
             stack.extend(valid_directions)
 
             # Update reinforcement learning variables
             if dirc != None:
+                # Previous and current states in 1D format
                 prev_state_number = self.coordinates_to_state_number(prev_y,prev_x)
                 state_number = self.coordinates_to_state_number(y,x)
 
                 # Set reward for possible transitions
-                print(prev_dirc)
-                R[prev_state_number][dirc.value] = 0 if (y,x) != goal_state else 5
-                R[state_number][Direction.find_oppposite(dirc).value] = 0 if (prev_y,prev_x) != goal_state else 5
+                R[prev_state_number][dirc.value] = self.normal_reward if (y,x) != goal_state else self.goal_reward
+                R[state_number][Direction.find_oppposite(dirc).value] = self.normal_reward if (prev_y,prev_x) != goal_state else self.goal_reward
 
                 # Add transition probability
+                P[prev_state_number][state_number] = 1 #will need to normalize later. numpy.newaxis
+                P[state_number][prev_state_number] = 1 #will need to normalize later. numpy.newaxis
 
                 # Add action to possible actions
-                pass
+                STA[prev_state_number].append(dirc)
+                STA[state_number].append(Direction.find_oppposite(dirc))
             
+            prev_y, prev_x = y, x # End of iteration
 
-            prev_y, prev_x, prev_dirc = y, x, dirc # End of iteration
-        return R
+        # Normalize matrix P
+        P = self.normalize_matrix(P)
+        return R, P, STA
+
+    # Normalizes a matrix so that each row sums up to one.
+    # TODO: check if this can be done in place
+    def normalize_matrix(self,matrix):
+        row_sums = matrix.sum(axis=1)
+        return matrix / row_sums[:, np.newaxis]
+        
 
     # Defines the goal states as a random state.
     # Goal state can never be the same as start state.
@@ -111,9 +138,6 @@ class MazeGenerator():
         return self.heigth*y + x
 
 if __name__ == '__main__':
-    m = MazeGenerator(heigth=3, width=3)
-    R = m.DFT()
-    print()
-    print("R: U,D,L,R")
-    for l in R:
-        print(l)
+    seed(42)
+    m = MazeGenerator(heigth=100, width=100)
+    R, P, STA = m.DFT()

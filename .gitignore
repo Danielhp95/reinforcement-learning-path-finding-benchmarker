@@ -1,5 +1,8 @@
 # Ignore hidden swap files
-.*.py.*
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-v][a-z]
+[._]sw[a-p]
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
