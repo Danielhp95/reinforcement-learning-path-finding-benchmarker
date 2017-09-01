@@ -41,7 +41,7 @@ class MazeGenerator():
         P = np.zeros((self.num_states, self.num_states))
         return P
     
-    # Will need to convert from 2D coordinate to state number
+    # Used for policies, possible actions that can be taken per state.
     def initialize_possible_actions_per_state(self):
         state_to_actions = [[] for _ in range(0, self.num_states)]
         return state_to_actions 
