@@ -1,8 +1,9 @@
 import numpy as np
 from random import shuffle, randrange, seed
 from enum import Enum
+from scipy import sparse
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger('maze_generator')
 
@@ -21,19 +22,19 @@ class Direction(Enum):
 
 class MazeGenerator():
 
-    def __init__(self, heigth=0, width=0):
-        if heigth <= 0 and width <= 0:
-            raise Exception('Heigth and width must be greater than zero, found: heigth {}, width {}'.format(heigth,width))
-        self.heigth        = heigth
+    def __init__(self, height=0, width=0):
+        if height <= 0 and width <= 0:
+            raise Exception('Heigth and width must be greater than zero, found: height {}, width {}'.format(height,width))
+        self.height        = height
         self.width         = width
-        self.num_states = heigth * width
+        self.num_states = height * width
         self.num_actions   = len(Direction)
 
         # Rewards for valid actions
         self.normal_reward = 0
         self.goal_reward   = 5
 
-        self.start_y, self.start_x = randrange(self.heigth), randrange(self.width)
+        self.start_y, self.start_x = randrange(self.height), randrange(self.width)
         self.goal_state = self.set_goal_state()
 
     def initialize_reward_matrix(self):
@@ -49,7 +50,7 @@ class MazeGenerator():
         state_to_actions = [[] for _ in range(0, self.num_states)]
         return state_to_actions 
 
-    # Creates a maze contained in a grid of space self.heigth ad self.width.
+    # Creates a maze contained in a grid of space self.height ad self.width.
     # In the process of creation it also creates the following matrices:
     #   - R: Reward matrix. Reward for moving to invalid position is -1.
     #                       Reward for moving to valid position is 
@@ -57,11 +58,11 @@ class MazeGenerator():
     #   - P: Transition probability matrix.
     #   - STA: valid actions for each state.
     def DFT(self):
-        within_bounds = lambda y,x: (x >= 0 and x < self.width) and (y >= 0 and y < self.heigth)
+        within_bounds = lambda y,x: (x >= 0 and x < self.width) and (y >= 0 and y < self.height)
         is_valid_direction = lambda y,x,_: within_bounds(y,x) and not visited[y][x]
 
         # Initialize all variables
-        visited = np.full((self.heigth, self.width), False)
+        visited = np.full((self.height, self.width), False)
         stack = [] # Used to calculate which state to visit next
 
 
@@ -129,17 +130,17 @@ class MazeGenerator():
     # Defines the goal states as a random state.
     # Goal state can never be the same as start state.
     def set_goal_state(self):
-        goal_y, goal_x = randrange(self.heigth),randrange(self.width)
+        goal_y, goal_x = randrange(self.height),randrange(self.width)
         while (self.start_y, self.start_x) == (goal_y, goal_x):
-            goal_y, goal_x = randrange(self.heigth),randrange(self.width)
+            goal_y, goal_x = randrange(self.height),randrange(self.width)
         return (goal_y, goal_x)
 
     # Given a 2D  coordinate, it calculates the state number.
     # i.e converts 2D array coordinate into 1D coordinate
     def coordinates_to_state_number(self,y,x):
-        return self.heigth*y + x
+        return self.height*y + x
 
 if __name__ == '__main__':
     seed(42)
-    m = MazeGenerator(heigth=2, width=2)
+    m = MazeGenerator(height=2, width=2)
     R, P, STA = m.DFT()
