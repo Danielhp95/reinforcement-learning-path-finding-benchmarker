@@ -2,11 +2,18 @@ import numpy as np
 from random import shuffle, randrange
 from enum import Enum
 
-class Directions(Enum):
+class Direction(Enum):
     UP  = 0
     DOWN = 1
     LEFT  = 2
     RIGHT = 3
+
+    @staticmethod
+    def find_oppposite(direction):
+        if direction == Direction.UP: return Direction.DOWN
+        if direction == Direction.DOWN: return Direction.UP
+        if direction == Direction.RIGHT: return Direction.LEFT
+        if direction == Direction.LEFT: return Direction.RIGHT
 
 class MazeGenerator():
 
@@ -16,7 +23,7 @@ class MazeGenerator():
         self.heigth        = heigth
         self.width         = width
         self.num_states = heigth * width
-        self.num_actions   = len(Directions)
+        self.num_actions   = len(Direction)
 
     def initialize_reward_matrix(self):
         R = np.full((self.num_states, self.num_actions), -1)
@@ -40,10 +47,10 @@ class MazeGenerator():
 
         # Initialize all variables
         visited = np.full((self.heigth, self.width), False)
-        print(visited)
         stack = [] # Used to calculate which state to visit next
 
         start_y, start_x = randrange(self.heigth), randrange(self.width)
+        goal_state = self.set_goal_state(start_y, start_x)
 
         # Variables used in reinforcement learning
         R = self.initialize_reward_matrix()
@@ -52,7 +59,8 @@ class MazeGenerator():
 
         # Start depth first traversal
         stack.append((start_y, start_x, None))
-        print('{} {}'.format(start_x,start_y))
+        print('Start state: {} {}'.format(start_y,start_x))
+        print('Goal  state: {} {}'.format(*goal_state))
         while len(stack) > 0:
             print()
             y, x, dirc = stack.pop()
@@ -61,27 +69,51 @@ class MazeGenerator():
             print("We have gone {}".format(dirc))
             visited[y][x] = True
             print(visited)
-            directions = [(y+1,x,Directions.DOWN),(y,x+1,Directions.RIGHT),
-                          (y-1,x,Directions.UP),(y,x-1,Directions.LEFT)]
+            directions = [(y+1,x,Direction.DOWN),(y,x+1,Direction.RIGHT),
+                          (y-1,x,Direction.UP),(y,x-1,Direction.LEFT)]
 
             valid_directions = [(y,x,d) for y,x,d in directions if is_valid_direction(y,x,d)]
 
-            print(valid_directions)
-            
+            # Shuffling possible directions ensures random walk
             shuffle(valid_directions)
             stack.extend(valid_directions)
 
+            # Update reinforcement learning variables
+            if dirc != None:
+                prev_state_number = self.coordinates_to_state_number(prev_y,prev_x)
+                state_number = self.coordinates_to_state_number(y,x)
 
+                # Set reward for possible transitions
+                print(prev_dirc)
+                R[prev_state_number][dirc.value] = 0 if (y,x) != goal_state else 5
+                R[state_number][Direction.find_oppposite(dirc).value] = 0 if (prev_y,prev_x) != goal_state else 5
 
-    # TODO: not implemented
-    def state_number_to_coordinates(self,state_num):
-        return (-1,-1)
+                # Add transition probability
 
+                # Add action to possible actions
+                pass
+            
 
+            prev_y, prev_x, prev_dirc = y, x, dirc # End of iteration
+        return R
+
+    # Defines the goal states as a random state.
+    # Goal state can never be the same as start state.
+    def set_goal_state(self, start_y, start_x):
+        goal_y, goal_x = randrange(self.heigth),randrange(self.width)
+        while (start_y, start_x) == (goal_y, goal_x):
+            goal_y, goal_x = randrange(self.heigth),randrange(self.width)
+        return (goal_y, goal_x)
+
+    # Given a 2D  coordinate, it calculates the state number.
+    # i.e converts 2D array coordinate into 1D coordinate
     def coordinates_to_state_number(self,y,x):
         return self.heigth*y + x
 
 if __name__ == '__main__':
     m = MazeGenerator(heigth=3, width=3)
-    m.DFT()
-    print("Boop")
+    R = m.DFT()
+    print()
+    print("R: U,D,L,R")
+    for l in R:
+        print(l)
