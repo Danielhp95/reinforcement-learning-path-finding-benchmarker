@@ -1,12 +1,18 @@
-from algorithms import qlearning
-from algorithms import sarsa
+#from algorithms import qlearning
+#from algorithms import sarsa
 from algorithms import first_visit_monte_carlo
 from algorithms import every_visit_monte_carlo
-from maze_generator import MazeGenerator
+import environments
+from environments import mazeEnvironment 
+from environments.mazeEnvironment import MazeEnvironment
 
 from time import time
 
-def benchmark_single(width, height):
+import logging
+logging.basicConfig(level=logging.debug)
+logger = logging.getLogger("benchmarker")
+
+def benchmark_single(environment,width, height):
     # Generate maze
     maze_creation_t0 = time()
     maze = MazeGenerator(height=height, width=width)
@@ -45,7 +51,12 @@ def benchmark_multiple():
     for size in range(initial, maximum_size, step):
         benchmark_single(size, size)
 
+def test_algorithm():
+    environment = MazeEnvironment(3,3)
+    policy = environment.STA
+    episode = first_visit_monte_carlo.generate_episode(environment, policy)
+    logging.debug("hello")
+    print(episode)
 
 if __name__ == '__main__':
-    benchmark_single(100,100)
-    #benchmark_multiple()
+    test_algorithm()

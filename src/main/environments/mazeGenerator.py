@@ -37,6 +37,11 @@ class MazeGenerator():
         self.start_y, self.start_x = randrange(self.height), randrange(self.width)
         self.goal_state = self.set_goal_state()
 
+    # TODO: think about a better way of assigning reward values.
+    # Perhaps add at the end?. Look at all possible actions for every state
+    # and give 0 (or small negative value) for non goal state and positive
+    # value for goal state..
+    # Perhaps  np.Nan for invalid moves.
     def initialize_reward_matrix(self):
         R = np.full((self.num_states, self.num_actions), -1)
         return R
@@ -118,6 +123,10 @@ class MazeGenerator():
 
         # Normalize matrix P
         P = self.normalize_matrix(P)
+        # Set all variables as part of object
+        self.R = R
+        self.P = P
+        self.STA = STA
         return R, P, STA
 
     # Normalizes a matrix so that each row sums up to one.
@@ -125,6 +134,16 @@ class MazeGenerator():
     def normalize_matrix(self,matrix):
         row_sums = matrix.sum(axis=1)
         return matrix / row_sums[:, np.newaxis]
+
+    # These two functions present duplication. One of them sets field and other one doesnt. Bad practice
+    # Defines the start as a random state.
+    # Start state can never be the same as goal state
+    def set_goal_state(self):
+        start_y, start_x = randrange(self.height),randrange(self.width)
+        while (self.goal_y, self.goal_x) == (start_y, start_x):
+            start_y, start_x = randrange(self.height),randrange(self.width)
+        self.start_y, self.start_x = start_y, start_x
+        return (start_y, start_x)
         
 
     # Defines the goal states as a random state.
@@ -139,6 +158,8 @@ class MazeGenerator():
     # i.e converts 2D array coordinate into 1D coordinate
     def coordinates_to_state_number(self,y,x):
         return self.height*y + x
+
+
 
 if __name__ == '__main__':
     seed(42)
