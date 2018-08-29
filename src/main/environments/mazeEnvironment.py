@@ -14,6 +14,7 @@ class MazeEnvironment():
         self.goal_state  = self.maze.coordinates_to_state_number(*self.maze.goal_state) # bad practice. Very similar attributes stored in different formats
         self.num_states  = self.maze.num_states
         self.num_actions = self.maze.num_actions
+        print(self.STA)
 
     def step(self, state, action):
         '''

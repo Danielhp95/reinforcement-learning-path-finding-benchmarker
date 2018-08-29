@@ -3,6 +3,8 @@ sys.path.append('..')
 
 from environments import mazeEnvironment
 
+from rlutils import create_q_table, deterministic_random_policy
+
 import numpy as np
 import random
 
@@ -11,35 +13,6 @@ from tqdm import tqdm
 import logging
 logging.basicConfig(level=logging.info)
 logger = logging.getLogger("Monte_carlo_for_control")
-
-
-def create_q_table(environment):
-    '''
-    Creates a Q table representing action-value function Q(state, action)
-    Initialized at zero, values will change throughout the algorithm.
-    :param environment:
-    :returns: Q table where valid state-action paris are initialized to 0 and
-              invalid ones are initialized to None.
-    '''
-    # TODO improve this
-    action_space_size = 4
-    Q_table = [[0.0] * action_space_size for _ in range(environment.num_states)]
-    for i in range(len(Q_table)):
-        valid_action_values_for_state = list(map(lambda x: x.value, environment.STA[i]))
-        for k in range(action_space_size):
-            Q_table[i][k] = 0.0 if k in valid_action_values_for_state else None
-
-    return Q_table
-
-
-def deterministic_random_policy(environment):
-    '''
-    Creates a deterministic policy that returns random actions
-    for a given environment
-    :param environment: Markov decision process that the policy will act on
-    :returns: random mapping from environment states to actions
-    '''
-    return [random.choice(valid_actions) for valid_actions in environment.STA]
 
 
 def get_return(remaining_episode, discount_factor):
